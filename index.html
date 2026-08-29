@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From 18 Lines to Production — LangChain Agents on AWS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1e1e1e; --muted:#6b7280; --bg:#faf9f6; --card:#fff;
+  --blue:#4a9eed; --blue-l:#a5d8ff; --green:#2f9e44; --green-l:#b2f2bb;
+  --amber:#f59e0b; --amber-l:#ffec99; --purple:#7048e8; --purple-l:#d0bfff;
+  --orange:#e8590c; --orange-l:#ffd8a8; --red-l:#ffc9c9; --border:#e5e2da;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55}
+header{position:fixed;top:0;left:0;right:0;height:60px;z-index:11;background:rgba(250,249,246,.94);backdrop-filter:blur(8px);border-bottom:2px solid var(--ink);display:flex;align-items:center;justify-content:center}
+header .brand{font-family:'Patrick Hand',cursive;font-size:1.55rem}
+header .aws{position:absolute;right:1.6rem;top:50%;transform:translateY(-50%);height:32px}
+header .lc{position:absolute;left:1.6rem;top:50%;transform:translateY(-50%);height:26px}
+nav{position:fixed;top:62px;left:0;bottom:0;width:230px;background:var(--bg);border-right:2px solid var(--ink);z-index:10;display:flex;flex-direction:column;gap:.35rem;padding:1.3rem 1rem;align-items:stretch}
+nav a{text-decoration:none;color:var(--ink);padding:.45rem .9rem;border-radius:10px;font-weight:600;font-size:.95rem;border:2px solid transparent;display:block}
+nav a:hover{border-color:var(--ink)}
+nav a.active{border-color:var(--ink);background:var(--amber-l);box-shadow:2px 2px 0 var(--ink)}
+body{margin-left:230px;padding-top:62px}
+main{max-width:1500px;margin:0 auto;padding:0 2.5rem 5rem}
+@media(max-width:900px){
+  body{margin-left:0}
+  nav{position:sticky;top:62px;bottom:auto;width:auto;flex-direction:row;flex-wrap:wrap;align-items:center;border-right:none;border-bottom:2px solid var(--ink);padding:.55rem 1.2rem}
+  nav a{display:inline-block}
+}
+section{padding-top:3.5rem;scroll-margin-top:70px}
+.hero{text-align:center;padding-top:4rem}
+.hero h1{font-family:'Patrick Hand',cursive;font-size:clamp(2.2rem,5vw,3.6rem);margin:.2rem 0}
+.hero p.sub{font-size:1.2rem;color:var(--muted);margin:.4rem 0 2rem}
+.flow{display:flex;justify-content:center;align-items:center;gap:.55rem;flex-wrap:wrap;font-weight:600}
+.flow .pill{border:2px solid var(--ink);border-radius:999px;padding:.45rem 1.1rem;background:var(--card);box-shadow:3px 3px 0 var(--ink)}
+.flow .pill.b{background:var(--blue-l)} .flow .pill.g{background:var(--green-l)} .flow .pill.y{background:var(--amber-l)} .flow .pill.p{background:var(--purple-l)}
+.flow .arr{font-size:1.3rem}
+.loopnote{color:var(--muted);font-size:.95rem;margin-top:.8rem}
+h2{font-family:'Patrick Hand',cursive;font-size:2.1rem;border-bottom:3px solid var(--ink);display:inline-block;padding-right:2rem;margin-bottom:.4rem}
+h2 .tag{font-family:Inter;font-size:.8rem;vertical-align:middle;border:2px solid var(--ink);border-radius:999px;padding:.15rem .7rem;margin-left:.7rem;background:var(--amber-l)}
+.lead{font-size:1.05rem;max-width:70ch}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;align-items:start;margin-top:1.2rem}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--card);border:2px solid var(--ink);border-radius:14px;box-shadow:4px 4px 0 var(--ink);padding:1.1rem 1.3rem}
+.card h3{margin:.1rem 0 .5rem;font-size:1.05rem}
+pre{background:#14161a;color:#e8eaf0;border-radius:12px;padding:1rem 1.2rem;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.82rem;line-height:1.55;margin:0}
+pre .c{color:#8b949e} pre .k{color:#79b8ff} pre .s{color:#9ecb88}
+ul.points{padding-left:1.2rem;margin:.4rem 0}
+ul.points li{margin:.45rem 0}
+.board{margin-top:1.6rem;background:var(--card);border:2px solid var(--ink);border-radius:14px;box-shadow:4px 4px 0 var(--ink);padding:.8rem;overflow:auto}
+.board .hint{display:flex;justify-content:space-between;color:var(--muted);font-size:.85rem;padding:.1rem .4rem .5rem}
+.board .svgmount svg{width:100%;height:auto;display:block;cursor:zoom-in}
+.board.zoom .svgmount svg{width:var(--natw,auto);max-width:none;cursor:zoom-out}
+.fallback{color:var(--muted);padding:1rem}
+.levels{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;margin-top:1.2rem}
+@media(max-width:800px){.levels{grid-template-columns:1fr}}
+.level{border-radius:14px;border:2px solid var(--ink);padding:1rem 1.2rem;background:var(--card);box-shadow:4px 4px 0 var(--ink)}
+.level .n{display:inline-block;border:2px solid var(--ink);border-radius:999px;width:1.7rem;height:1.7rem;text-align:center;line-height:1.5rem;font-weight:800;margin-right:.5rem}
+.level.l1{background:var(--green-l)} .level.l2{background:var(--blue-l)} .level.l3{background:var(--orange-l)} .level.l4{background:var(--purple-l)}
+.level code{font-family:'JetBrains Mono',monospace;font-size:.82rem;background:rgba(255,255,255,.7);padding:.1rem .35rem;border-radius:6px}
+.takeaways{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;margin-top:1.2rem}
+@media(max-width:800px){.takeaways{grid-template-columns:1fr}}
+.takeaways .card{background:var(--red-l)}
+details{border:2px solid var(--ink);border-radius:12px;background:var(--card);box-shadow:3px 3px 0 var(--ink);padding:.7rem 1.1rem;margin:.8rem 0}
+summary{font-weight:700;cursor:pointer}
+footer{text-align:center;color:var(--muted);padding:2rem;font-family:'Patrick Hand',cursive;font-size:1.15rem}
+kbd{font-family:'JetBrains Mono',monospace;font-size:.8rem;border:1px solid var(--border);border-bottom-width:3px;border-radius:6px;padding:.05rem .4rem;background:#fff}
+.ico{width:1.2em;height:1.2em;vertical-align:-0.22em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.roadmap{display:flex;justify-content:center;align-items:stretch;gap:.7rem;flex-wrap:wrap;margin-top:2.6rem}
+.roadmap .step{border:2px solid var(--ink);border-radius:12px;padding:.5rem .9rem;background:var(--card);box-shadow:3px 3px 0 var(--ink);font-size:.88rem;max-width:170px;text-align:left}
+.roadmap .step .v{font-weight:800;display:block}
+.roadmap .step.done{background:var(--green-l)}
+.roadmap .step.now{background:var(--amber-l)}
+.roadmap .sep{align-self:center;font-size:1.2rem}
+.roadmap-caption{color:var(--muted);font-size:.95rem;margin-top:.9rem}
+nav .brand .ico{width:1.35em;height:1.35em;margin-right:.35rem}
+</style>
+</head>
+<body>
+
+<header>
+  <img class="lc" src="assets/langchain-logo.svg" alt="LangChain">
+  <span class="brand"><svg class="ico" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg> LangChain Agent on Bedrock</span>
+  <img class="aws" src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" alt="AWS">
+</header>
+
+<nav>
+  <a href="#overview">Overview</a>
+  <a href="#v01">v0.1 — the agent</a>
+  <a href="#v02">v0.2 — observability</a>
+  <a href="#v03">v0.3 — memory</a>
+  <a href="#v04">v0.4 — real tools</a>
+  <a href="#v05">v0.5 — deploy</a>
+  <a href="#v06">v0.6 — durable memory</a>
+  <a href="#v07">v0.7 — gateway</a>
+  <a href="#run">Run it</a>
+  <a href="chat.html" style="background:var(--green-l)"><svg class="ico" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg> Chat live</a>
+</nav>
+
+<main>
+
+<section id="overview" class="hero">
+  <h1>From 18 Lines to Production</h1>
+  <p class="sub">One LangChain agent on Amazon Bedrock — grown from the simplest possible loop into a production service on AgentCore, one episode at a time.</p>
+  <div class="flow">
+    <span class="pill y">you</span><span class="arr">→</span>
+    <span class="pill b">agent loop</span><span class="arr">→</span>
+    <span class="pill p">Claude Opus 5 · Bedrock</span><span class="arr">⇄</span>
+    <span class="pill g">get_weather()</span><span class="arr">→</span>
+    <span class="pill y">answer</span>
+  </div>
+  <p class="loopnote">the loop <em>is</em> the agent — everything else is plumbing</p>
+
+  <div class="roadmap">
+    <div class="step done"><span class="v">v0.1 ✓</span>the simplest agent — 18 lines</div>
+    <span class="sep">→</span>
+    <div class="step done"><span class="v">v0.2 ✓</span>observability — 4 levels of logging</div>
+    <span class="sep">→</span>
+    <div class="step done"><span class="v">v0.3 ✓</span>memory &amp; multi-turn conversations</div>
+    <span class="sep">→</span>
+    <div class="step done"><span class="v">v0.4 ✓</span>real tools — MCP &amp; APIs</div>
+    <span class="sep">→</span>
+    <div class="step done"><span class="v">v0.5 ✓</span>deploy — Amazon Bedrock <strong>AgentCore</strong> Runtime</div>
+    <span class="sep">→</span>
+    <div class="step done"><span class="v">v0.6 ✓</span>AgentCore Memory — remembers across sessions</div>
+    <span class="sep">→</span>
+    <div class="step done"><span class="v">v0.7 ✓</span>AgentCore Gateway — tools as infrastructure</div>
+    <span class="sep">→</span>
+    <div class="step"><span class="v">v0.8+</span>AgentCore powers: Identity · Browser · Code Interpreter</div>
+  </div>
+  <p class="roadmap-caption">a tutorial series — from 18 lines on a laptop to a production agent on AWS AgentCore</p>
+</section>
+
+<section id="v01">
+  <h2>v0.1 — an agent in 18 lines<span class="tag">v0.1/</span></h2>
+  <p class="lead">No classes, no framework ceremony. A plain function becomes a tool; <code>create_agent()</code> wires the loop.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>v0.1/agent-v0.1.py</h3>
+<pre><span class="k">from</span> langchain.agents <span class="k">import</span> create_agent
+<span class="k">from</span> langchain_aws <span class="k">import</span> ChatBedrockConverse
+
+<span class="k">def</span> get_weather(city: str) -&gt; str:
+    <span class="s">"""Get weather for a given city."""</span>
+    <span class="k">return</span> <span class="s">f"It's always sunny in {city}!"</span>
+
+model = ChatBedrockConverse(
+    model=<span class="s">"us.anthropic.claude-opus-5"</span>,
+    region_name=<span class="s">"us-east-1"</span>,  <span class="c"># pinned</span>
+)
+
+agent = create_agent(model=model, tools=[get_weather])
+
+result = agent.invoke({<span class="s">"messages"</span>: [
+    {<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: <span class="s">"What's the weather in Mumbai?"</span>}
+]})
+<span class="k">print</span>(result[<span class="s">"messages"</span>][-1].text)</pre>
+    </div>
+    <div class="card">
+      <h3>What the model actually sees</h3>
+      <ul class="points">
+        <li>function <strong>name</strong> → tool name</li>
+        <li><strong>docstring</strong> → tool description <em>(how Claude decides when to call it)</em></li>
+        <li><strong>type hints</strong> → JSON Schema <code>{"city": "string"}</code></li>
+        <li>the <strong>body never leaves your machine</strong> — the model only <em>asks</em>, your process executes</li>
+      </ul>
+      <h3>One invoke() = two HTTPS calls</h3>
+      <ul class="points">
+        <li>① request + tool schema → ② <code>stopReason: tool_use</code></li>
+        <li>③ your code runs the tool locally</li>
+        <li>④ full history resent (API is stateless) → ⑤ <code>end_turn</code></li>
+      </ul>
+    </div>
+  </div>
+  <div class="board" id="board-v01">
+    <div class="hint"><span><svg class="ico" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></svg> v0.1/agent-explainer-v0.1.excalidraw — code → loop → wire</span><span>click to zoom</span></div>
+    <div class="svgmount" id="svg-v01"><p class="fallback">rendering board…</p></div>
+  </div>
+</section>
+
+<section id="v02">
+  <h2>v0.2 — X-ray vision<span class="tag">v0.2/</span></h2>
+  <p class="lead">Same agent, four levels of logging — each one taps a different layer of the stack.</p>
+  <div class="levels">
+    <div class="level l1"><span class="n">1</span><strong>Step trace — always on</strong><br>
+      <code>agent.stream(...)</code> + <code>pretty_print()</code><br>
+      Human → AI tool call → Tool result → final AI. The loop, live.</div>
+    <div class="level l2"><span class="n">2</span><strong>--debug — LangChain internals</strong><br>
+      <code>set_debug(True)</code><br>
+      Every chain/LLM start+end with full JSON, tokens &amp; stopReason.</div>
+    <div class="level l3"><span class="n">3</span><strong>--wire — raw HTTP</strong><br>
+      <code>boto3.set_stream_logger("botocore.endpoint")</code><br>
+      The literal <code>POST /converse</code> body — messages + toolConfig.</div>
+    <div class="level l4"><span class="n">4</span><strong>LangSmith — traces in the cloud</strong><br>
+      one <code>.env</code> file →<br>
+      per-run latency, tokens and cost in project <em>AgentCore-Demo</em>.</div>
+  </div>
+  <div class="board" id="board-v02">
+    <div class="hint"><span><svg class="ico" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></svg> v0.2/agent-explainer-v0.2.excalidraw — the stack &amp; where each log taps in</span><span>click to zoom</span></div>
+    <div class="svgmount" id="svg-v02"><p class="fallback">rendering board…</p></div>
+  </div>
+</section>
+
+<section id="v03">
+  <h2>v0.3 — memory<span class="tag">v0.3/</span></h2>
+  <p class="lead">One new line — a <strong>checkpointer</strong> — and the agent holds a conversation. <code>thread_id</code> picks <em>which</em> conversation.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>v0.3/agent-v0.3.py — the diff that matters</h3>
+<pre><span class="k">from</span> langgraph.checkpoint.memory <span class="k">import</span> InMemorySaver
+
+agent = create_agent(model=model, tools=[get_weather],
+                     checkpointer=InMemorySaver())
+
+agent.invoke({<span class="s">"messages"</span>: [...]},
+             {<span class="s">"configurable"</span>: {<span class="s">"thread_id"</span>: <span class="s">"chetan"</span>}})</pre>
+      <p style="margin:.7rem 0 0;color:var(--muted)">Every turn: <strong>load</strong> the thread's history → <strong>run</strong> the loop → <strong>save</strong> it back.</p>
+    </div>
+    <div class="card">
+      <h3>Live transcript (real run)</h3>
+<pre>you [demo]&gt;  Hi! My name is Chetan and I live in Mumbai.
+agent&gt; Good news — it's always sunny in Mumbai! 🌞
+you [demo]&gt;  What's my name?
+agent&gt; Your name is Chetan, and you live in Mumbai ☀️
+you&gt; /thread other        <span class="c"># fresh conversation</span>
+you [other]&gt; What's my name?
+agent&gt; I don't have any way to know your name…</pre>
+      <p style="margin:.7rem 0 0;color:var(--muted)">Same process, two threads — memory is per-<code>thread_id</code>. And the wire is <em>still stateless</em>: the checkpointer replays history; the model remembers nothing.</p>
+    </div>
+  </div>
+  <div class="board" id="board-v03">
+    <div class="hint"><span><svg class="ico" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></svg> v0.3/agent-explainer-v0.3.excalidraw — checkpointer, threads &amp; the stateless wire</span><span>click to zoom</span></div>
+    <div class="svgmount" id="svg-v03"><p class="fallback">rendering board…</p></div>
+  </div>
+</section>
+
+<section id="v04">
+  <h2>v0.4 — real tools<span class="tag">v0.4/</span></h2>
+  <p class="lead">The fake weather stub becomes a <strong>live API call</strong>, and an <strong>MCP server</strong> contributes 14 tools we never wrote. The model can't tell the difference — a tool is just a name, description and schema.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>v0.4/agent-v0.4.py — the diff that matters</h3>
+<pre><span class="c"># get_weather now calls Open-Meteo (real data, no API key)</span>
+geo = requests.get(GEOCODE_URL, params={<span class="s">"name"</span>: city})
+wx  = requests.get(FORECAST_URL, params={...})
+
+<span class="c"># + 14 tools from the official filesystem MCP server</span>
+MCP_SERVERS = {<span class="s">"filesystem"</span>: {
+    <span class="s">"transport"</span>: <span class="s">"stdio"</span>, <span class="s">"command"</span>: <span class="s">"npx"</span>,
+    <span class="s">"args"</span>: [<span class="s">"-y"</span>, <span class="s">"@modelcontextprotocol/server-filesystem"</span>, REPO],
+}}
+mcp_tools = <span class="k">await</span> MultiServerMCPClient(MCP_SERVERS).get_tools()
+agent = create_agent(model, tools=[get_weather, *mcp_tools])</pre>
+      <p style="margin:.7rem 0 0;color:var(--muted)">MCP tools are async, so <code>invoke</code> → <code>ainvoke</code>. The loop itself is unchanged.</p>
+    </div>
+    <div class="card">
+      <h3>Live transcript (real run)</h3>
+<pre>you [demo]&gt; What's the weather in Mumbai right now?
+<span class="c">tools used: get_weather</span>
+agent&gt; Temperature: 27.6°C (feels like 31.2°C),
+       humidity 82%, wind 17.7 km/h — real data!
+
+you [demo]&gt; List the files in the v0.1 folder.
+<span class="c">tools used: list_allowed_directories, list_directory,
+            search_files, list_directory_with_sizes</span>
+agent&gt; agent-explainer-v0.1.excalidraw (42.92 KB)
+       agent-v0.1.py (710 B)</pre>
+      <p style="margin:.7rem 0 0;color:var(--muted)">The agent <em>chose</em> those four filesystem tools on its own — we only plugged in the server, scoped to this repo and nothing else.</p>
+    </div>
+  </div>
+  <div class="board" id="board-v04">
+    <div class="hint"><span><svg class="ico" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></svg> v0.4/agent-explainer-v0.4.excalidraw — real APIs &amp; the MCP plug</span><span>click to zoom</span></div>
+    <div class="svgmount" id="svg-v04"><p class="fallback">rendering board…</p></div>
+  </div>
+</section>
+
+<section id="v05">
+  <h2>v0.5 — deployed on AgentCore<span class="tag">v0.5/</span></h2>
+  <p class="lead">The agent didn't change — <strong>its home did</strong>. The REPL becomes an HTTP entrypoint, <code>agentcore deploy</code> ships it to Amazon Bedrock <strong>AgentCore Runtime</strong>, and every conversation gets its own isolated microVM.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>v0.5/WeatherAgent — the diff that matters</h3>
+<pre>app = BedrockAgentCoreApp()
+
+<span class="k">@app.entrypoint</span>
+<span class="k">async def</span> invoke(payload, context):
+    <span class="c"># same loop, same get_weather tool</span>
+    session_id = context.session_id  <span class="c"># = thread_id (v0.3!)</span>
+    result = <span class="k">await</span> graph.ainvoke(...)
+    <span class="k">return</span> {<span class="s">"result"</span>: result[<span class="s">"messages"</span>][-1].text}</pre>
+<pre style="margin-top:.8rem">agentcore create   <span class="c"># scaffold (LangChain/LangGraph template)</span>
+agentcore dev      <span class="c"># local chat UI on :8081</span>
+agentcore deploy   <span class="c"># CDK: IAM + runtime, CodeZip — no Docker</span>
+agentcore invoke "What's the weather in Mumbai?"</pre>
+    </div>
+    <div class="card">
+      <h3>Live transcript — from the CLOUD</h3>
+<pre>$ agentcore invoke "Hi, I'm Chetan. Weather in Mumbai?"
+agent&gt; 27.3°C (feels like 30.8°C), humidity 79%…
+<span class="c">Session: b3c63b3b-…</span>
+
+$ agentcore invoke --session-id b3c63b3b-… "What's my name?"
+agent&gt; Your name is Chetan — you introduced
+       yourself when you asked about Mumbai. 😊</pre>
+      <p style="margin:.7rem 0 0;color:var(--muted)">Same memory trick as v0.3 — the runtime's <code>session_id</code> becomes the <code>thread_id</code>. Each session runs in its own microVM, so <code>InMemorySaver</code> just works, isolated per user. Durable, cross-session memory? That's AgentCore Memory — v0.6.</p>
+    </div>
+  </div>
+  <div class="board" id="board-v05">
+    <div class="hint"><span><svg class="ico" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></svg> v0.5/agent-explainer-v0.5.excalidraw — entrypoint, deploy pipeline &amp; microVM sessions</span><span>click to zoom</span></div>
+    <div class="svgmount" id="svg-v05"><p class="fallback">rendering board…</p></div>
+  </div>
+</section>
+
+<section id="v06">
+  <h2>v0.6 — durable memory<span class="tag">v0.6/</span></h2>
+  <p class="lead"><code>InMemorySaver</code> retires. <strong>AgentCore Memory</strong> is a managed service: short-term checkpoints persist per session, and the service <em>extracts</em> facts &amp; preferences in the background — so a brand-new session already knows you. A fresh project, its own stack: <code>WeatherAgentV6</code>.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>v0.6/WeatherAgentV6 — the diff that matters</h3>
+<pre><span class="c"># scaffolded with memory from birth:</span>
+agentcore create --name WeatherAgentV6 --memory longAndShortTerm
+
+<span class="c"># in main.py — InMemorySaver is gone:</span>
+checkpointer = AgentCoreMemorySaver(MEMORY_ID)      <span class="c"># short-term</span>
+store = AgentCoreMemoryStore(memory_id=MEMORY_ID)   <span class="c"># long-term</span>
+
+graph = create_react_agent(model, tools=tools,
+    checkpointer=checkpointer, store=store,
+    pre_model_hook=pre_model_hook)  <span class="c"># save msgs + inject recalls</span></pre>
+      <p style="margin:.7rem 0 0;color:var(--muted)">Four strategies: SEMANTIC facts, USER_PREFERENCE, SUMMARIZATION, EPISODIC. Extraction runs <strong>asynchronously ~30s</strong> after each turn.</p>
+    </div>
+    <div class="card">
+      <h3>Proof — two separate cloud sessions</h3>
+<pre>$ agentcore invoke "Hi! My name is Chetan, I live in
+  Mumbai, and I prefer short answers."
+agent&gt; Hi Chetan! Noted — Mumbai, short answers.
+<span class="c">Session: e1a6be71-…</span>
+
+<span class="c"># ~1 minute later — a BRAND NEW session:</span>
+$ agentcore invoke "What do you know about me?
+  And what's the weather where I live?"
+agent&gt; Mumbai: 26.4°C, feels like 30.6°C — humid
+       (87%), light wind.
+<span class="c">Session: 71129188-…</span></pre>
+      <p style="margin:.7rem 0 0;color:var(--muted)">It knew the city <em>and</em> honored "short answers" — the terse reply is the preference memory working. Extracted memories, verbatim: <em>"The user's name is Chetan · lives in Mumbai · prefers short answers."</em></p>
+    </div>
+  </div>
+  <div class="board" id="board-v06">
+    <div class="hint"><span><svg class="ico" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></svg> v0.6/agent-explainer-v0.6.excalidraw — the memory service, extraction pipeline &amp; proof</span><span>click to zoom</span></div>
+    <div class="svgmount" id="svg-v06"><p class="fallback">rendering board…</p></div>
+  </div>
+</section>
+
+<section id="v07">
+  <h2>v0.7 — the gateway<span class="tag">v0.7/</span></h2>
+  <p class="lead">The tool <strong>leaves the codebase</strong>. Open-Meteo's endpoints become <strong>gateway targets</strong> — one from an OpenAPI spec, one from a 15-line Lambda — and the agent discovers them as MCP tools. Credentials are injected at the edge; the agent process never sees a key. Fresh project, own stack: <code>WeatherAgentV7</code>.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>v0.7/WeatherAgentV7 — the diff that matters</h3>
+<pre><span class="c"># tools are now project config, not code:</span>
+agentcore add gateway --name WeatherGateway
+agentcore add credential --name OpenMeteoKey --api-key …
+agentcore add gateway-target --type open-api-schema \
+  --name GeoAPI --schema specs/open-meteo-geocoding.json
+agentcore add gateway-target --type lambda-function-arn \
+  --name ForecastTool --lambda-arn arn:…:WeatherAgentV7Forecast
+
+<span class="c"># in main.py, the ONLY tool wiring left:</span>
+client = MultiServerMCPClient({<span class="s">"gateway"</span>: {<span class="s">"transport"</span>:
+  <span class="s">"streamable_http"</span>, <span class="s">"url"</span>: GATEWAY_URL}})
+tools = <span class="k">await</span> client.get_tools()
+<span class="c"># -> ['GeoAPI___geocodeCity', 'ForecastTool___getCurrentWeather']</span></pre>
+    </div>
+    <div class="card">
+      <h3>Proof — live from the cloud</h3>
+<pre>$ agentcore invoke "What's the weather in Mumbai right now?"
+<span class="c"># gateway chain: geocodeCity → getCurrentWeather</span>
+agent&gt; Mumbai now: 26.9°C (feels 30.9°C),
+       humidity 84%, wind 14 km/h.</pre>
+      <p style="margin:.7rem 0 0;color:var(--muted)">Memory from v0.6 carries over — a brand-new session still knew Mumbai and kept the answer short. The agent code contains zero weather logic; both tools come from the gateway.</p>
+    </div>
+  </div>
+  <div class="board" id="board-v07">
+    <div class="hint"><span><svg class="ico" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></svg> v0.7/agent-explainer-v0.7.excalidraw — gateway architecture &amp; target types</span><span>click to zoom</span></div>
+    <div class="svgmount" id="svg-v07"><p class="fallback">rendering board…</p></div>
+  </div>
+</section>
+
+<section id="run">
+  <h2>Run it<span class="tag">terminal</span></h2>
+  <div class="card" style="margin-top:1.2rem">
+<pre>pip install -r requirements.txt
+
+python v0.1/agent-v0.1.py            <span class="c"># the agent</span>
+python v0.2/agent-v0.2.py            <span class="c"># + step-by-step trace</span>
+python v0.2/agent-v0.2.py --debug    <span class="c"># + LangChain internals</span>
+python v0.2/agent-v0.2.py --wire     <span class="c"># + raw HTTPS to Bedrock</span>
+python v0.3/agent-v0.3.py            <span class="c"># chat with memory (/thread to switch)</span>
+python v0.4/agent-v0.4.py            <span class="c"># + real weather API + MCP tools (/tools)</span>
+
+cd v0.5/WeatherAgent && agentcore deploy   <span class="c"># ship it to AgentCore</span>
+agentcore invoke "What's the weather in Mumbai?"
+
+cd v0.6/WeatherAgentV6 && agentcore deploy <span class="c"># + durable AgentCore Memory</span>
+agentcore invoke "Hi, I'm Chetan from Mumbai"  <span class="c"># any later session remembers</span>
+
+cd v0.7/WeatherAgentV7 && agentcore deploy <span class="c"># + Gateway: tools as infrastructure</span>
+agentcore invoke "What's the weather in Mumbai?"  <span class="c"># tools come from the gateway</span></pre>
+  </div>
+  <div class="takeaways">
+    <div class="card"><h3>1 · Models don't execute</h3>The model only <em>names</em> a tool + arguments. Your process runs it.</div>
+    <div class="card"><h3>2 · The API is stateless</h3>The whole conversation is resent on every single call.</div>
+    <div class="card"><h3>3 · The loop is the agent</h3>model ⇄ tools until no more tool calls. Everything else is plumbing.</div>
+  </div>
+
+</section>
+
+</main>
+
+<footer>agents are simple — environments are not · next stop: v0.8 — Identity · Browser · Code Interpreter</footer>
+
+<script type="module">
+// render the live .excalidraw boards to inline SVG (page must be served over http)
+const boards = [
+  { file: "v0.1/agent-explainer-v0.1.excalidraw", mount: "svg-v01" },
+  { file: "v0.2/agent-explainer-v0.2.excalidraw", mount: "svg-v02" },
+  { file: "v0.3/agent-explainer-v0.3.excalidraw", mount: "svg-v03" },
+  { file: "v0.4/agent-explainer-v0.4.excalidraw", mount: "svg-v04" },
+  { file: "v0.5/agent-explainer-v0.5.excalidraw", mount: "svg-v05" },
+  { file: "v0.6/agent-explainer-v0.6.excalidraw", mount: "svg-v06" },
+  { file: "v0.7/agent-explainer-v0.7.excalidraw", mount: "svg-v07" },
+];
+try {
+  const { exportToSvg } = await import("https://esm.sh/@excalidraw/excalidraw@0.18.0?bundle");
+  for (const b of boards) {
+    const mount = document.getElementById(b.mount);
+    try {  // per-board: a missing file shouldn't take the others down
+      const res = await fetch(b.file);
+      if (!res.ok) throw new Error(`${b.file} not found`);
+      const data = await res.json();
+      const svg = await exportToSvg({
+        elements: data.elements,
+        appState: { ...(data.appState || {}), exportBackground: true, viewBackgroundColor: "#ffffff" },
+        files: data.files || {},
+      });
+      svg.removeAttribute("width"); svg.removeAttribute("height");
+      svg.style.setProperty("--natw", svg.viewBox.baseVal.width + "px"); // natural size for click-to-zoom
+      mount.replaceChildren(svg);
+    } catch (e) {
+      mount.innerHTML = `<p class="fallback">Board not available here — the <code>.excalidraw</code> explainer files aren't part of this repo.</p>`;
+    }
+  }
+} catch (e) {
+  document.querySelectorAll(".svgmount").forEach(el => {
+    el.innerHTML = `<p class="fallback">Couldn't render inline (${e.message}). Serve this page over http (python3 serve.py) with internet access.</p>`;
+  });
+}
+// click to zoom boards
+document.querySelectorAll(".board").forEach(b => b.addEventListener("click", ev => {
+  if (ev.target.closest(".svgmount svg")) b.classList.toggle("zoom");
+}));
+// nav active state
+const links = [...document.querySelectorAll("nav a[href^='#']")];
+const obs = new IntersectionObserver(es => es.forEach(en => {
+  if (en.isIntersecting) links.forEach(l => l.classList.toggle("active", l.hash === "#" + en.target.id));
+}), { rootMargin: "-40% 0px -55% 0px" });
+document.querySelectorAll("section[id]").forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Open-Meteo Geocoding API",
+    "description": "Turn a city name into coordinates (latitude/longitude).",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "https://geocoding-api.open-meteo.com" }],
+  "security": [{ "ApiKeyAuth": [] }],
+  "paths": {
+    "/v1/search": {
+      "get": {
+        "operationId": "geocodeCity",
+        "summary": "Find coordinates for a city",
+        "description": "Look up a city by name and return its latitude, longitude and country. Use this before asking for a weather forecast.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "description": "City name, e.g. 'Mumbai'",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "required": false,
+            "description": "How many matches to return (use 1)",
+            "schema": { "type": "integer", "default": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching places",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": { "type": "string" },
+                          "country": { "type": "string" },
+                          "latitude": { "type": "number" },
+                          "longitude": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-Api-Key" }
+    }
+  }
+}

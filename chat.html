@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat — LangChain Agent on Bedrock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root{
+  --ink:#1e1e1e; --muted:#6b7280; --bg:#faf9f6; --card:#fff;
+  --blue-l:#a5d8ff; --green:#2f9e44; --green-l:#b2f2bb;
+  --amber-l:#ffec99; --purple-l:#d0bfff; --red-l:#ffc9c9;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55;display:flex;flex-direction:column;height:100vh}
+header{position:relative;flex:none;height:60px;background:rgba(250,249,246,.94);border-bottom:2px solid var(--ink);display:flex;align-items:center;justify-content:center}
+header .brand{font-family:'Patrick Hand',cursive;font-size:1.55rem}
+header .lc{position:absolute;left:1.6rem;top:50%;transform:translateY(-50%);height:26px}
+header .aws{position:absolute;right:1.6rem;top:50%;transform:translateY(-50%);height:32px}
+.bar{flex:none;max-width:980px;width:100%;margin:1rem auto 0;padding:0 1.5rem;display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
+.bar a{color:var(--ink);font-weight:600;text-decoration:none;border:2px solid var(--ink);border-radius:999px;padding:.3rem .9rem;background:var(--card);box-shadow:2px 2px 0 var(--ink)}
+.bar .status{margin-left:auto;display:flex;align-items:center;gap:.45rem;color:var(--muted);font-size:.9rem}
+.bar .dot{width:.7rem;height:.7rem;border-radius:50%;background:#adb5bd;border:1px solid var(--ink)}
+.bar .dot.ok{background:var(--green-l)} .bar .dot.bad{background:var(--red-l)}
+.bar .sess{font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--muted)}
+.bar button{font:inherit;font-weight:600;border:2px solid var(--ink);border-radius:999px;padding:.3rem .9rem;background:var(--amber-l);box-shadow:2px 2px 0 var(--ink);cursor:pointer}
+.bar button:active{transform:translate(2px,2px);box-shadow:none}
+#chat{flex:1;overflow-y:auto;max-width:980px;width:100%;margin:1rem auto;padding:0 1.5rem;display:flex;flex-direction:column;gap:.9rem}
+.msg{max-width:78%;border:2px solid var(--ink);border-radius:14px;padding:.65rem 1rem;box-shadow:3px 3px 0 var(--ink)}
+.msg.you{align-self:flex-end;background:var(--amber-l)}
+.msg.agent{align-self:flex-start;background:var(--card)}
+.msg.err{align-self:flex-start;background:var(--red-l)}
+.msg.think{align-self:flex-start;background:var(--card);color:var(--muted);font-style:italic;border-style:dashed;box-shadow:none;display:flex;align-items:center;gap:.6rem}
+.dots{display:inline-flex;gap:.28rem}
+.dots i{width:.5rem;height:.5rem;border-radius:50%;background:var(--ink);opacity:.25;animation:hop 1.2s infinite}
+.dots i:nth-child(2){animation-delay:.2s}
+.dots i:nth-child(3){animation-delay:.4s}
+@keyframes hop{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+.telapsed{font-family:'JetBrains Mono',monospace;font-size:.8rem;font-style:normal;color:var(--muted)}
+.msg p:first-child{margin-top:0}.msg p:last-child{margin-bottom:0}
+.msg pre{background:#14161a;color:#e8eaf0;border-radius:10px;padding:.7rem .9rem;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.82rem}
+.msg code{font-family:'JetBrains Mono',monospace;font-size:.88em;background:rgba(0,0,0,.06);padding:.05rem .3rem;border-radius:5px}
+.msg pre code{background:none;padding:0}
+.msg table{border-collapse:collapse;margin:.4rem 0}
+.msg th,.msg td{border:1px solid var(--ink);padding:.25rem .6rem}
+.hello{align-self:center;text-align:center;color:var(--muted);margin-top:2rem}
+.hello .big{font-family:'Patrick Hand',cursive;font-size:1.6rem;color:var(--ink)}
+form{flex:none;max-width:980px;width:100%;margin:0 auto 1.2rem;padding:0 1.5rem;display:flex;gap:.7rem}
+form input{flex:1;font:inherit;padding:.7rem 1rem;border:2px solid var(--ink);border-radius:12px;background:var(--card);box-shadow:3px 3px 0 var(--ink)}
+form input:focus{outline:none;background:#fffdf4}
+form button{font:inherit;font-weight:700;border:2px solid var(--ink);border-radius:12px;padding:.7rem 1.4rem;background:var(--blue-l);box-shadow:3px 3px 0 var(--ink);cursor:pointer}
+form button:disabled{opacity:.5;cursor:wait}
+form button:not(:disabled):active{transform:translate(2px,2px);box-shadow:none}
+.ico{width:1.2em;height:1.2em;vertical-align:-0.22em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</head>
+<body>
+
+<header>
+  <img class="lc" src="assets/langchain-logo.svg" alt="LangChain">
+  <span class="brand"><svg class="ico" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg> <span id="brandname">live chat</span></span>
+  <img class="aws" src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" alt="AWS">
+</header>
+
+<div class="bar">
+  <a href="index.html">← demo hub</a>
+  <span class="status"><span class="dot" id="dot"></span><span id="stat">checking agent…</span></span>
+  <span class="sess" id="sess"></span>
+  <button id="newsess" type="button">new conversation</button>
+</div>
+
+<div id="chat">
+  <div class="hello" id="hello">
+    <div class="big" id="helloname">Talk to the agent</div>
+    talking to whatever <code>agentcore dev</code> is running, via the hub's proxy<br>
+    try: <em>“What's the weather in Mumbai?”</em> — or <em>“What do you know about me?”</em>
+  </div>
+</div>
+
+<form id="form">
+  <input id="box" placeholder="Ask the agent…" autocomplete="off" autofocus>
+  <button id="send">Send</button>
+</form>
+
+<script>
+const chat = document.getElementById("chat"), box = document.getElementById("box"),
+      send = document.getElementById("send"), sess = document.getElementById("sess");
+let session = crypto.randomUUID();
+
+function showSession() { sess.textContent = "session " + session.slice(0, 8) + "…"; }
+showSession();
+
+document.getElementById("newsess").onclick = () => {
+  session = crypto.randomUUID(); showSession();
+  add("agent", "*(fresh conversation — I remember nothing)*");
+};
+
+function thinking() {
+  const d = document.createElement("div");
+  d.className = "msg think";
+  d.innerHTML = '<span class="dots"><i></i><i></i><i></i></span><span class="tstat">contacting the agent…</span><span class="telapsed"></span>';
+  document.getElementById("hello")?.remove();
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+  const phrases = ["Claude is thinking…", "maybe calling get_weather()…", "reading tool results…", "composing the reply…", "still working — tool runs can take ~10s…"];
+  let i = 0; const t0 = Date.now();
+  const rot = setInterval(() => { d.querySelector(".tstat").textContent = phrases[Math.min(i++, phrases.length - 1)]; }, 2200);
+  const tick = setInterval(() => { d.querySelector(".telapsed").textContent = ((Date.now() - t0) / 1000).toFixed(1) + "s"; }, 100);
+  return { done() { clearInterval(rot); clearInterval(tick); d.remove(); } };
+}
+
+function add(kind, text) {
+  const d = document.createElement("div");
+  d.className = "msg " + kind;
+  if (kind === "you") d.textContent = text; else d.innerHTML = marked.parse(text);
+  document.getElementById("hello")?.remove();
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+  return d;
+}
+
+document.getElementById("form").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const q = box.value.trim();
+  if (!q) return;
+  box.value = ""; send.disabled = true;
+  add("you", q);
+  const think = thinking();
+  try {
+    const r = await fetch("/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Id": session },
+      body: JSON.stringify({ prompt: q }),
+    });
+    const data = await r.json();
+    think.done();
+    if (data.result) add("agent", data.result);
+    else add("err", "**error:** " + (data.error || JSON.stringify(data)));
+  } catch (e) {
+    think.done(); add("err", "**error:** " + e.message);
+  }
+  send.disabled = false; box.focus();
+};
+
+// agent identity + health check
+fetch("/agent/meta").then(r => r.json()).then(m => {
+  document.getElementById("brandname").textContent = m.label + " — live chat";
+  document.getElementById("helloname") && (document.getElementById("helloname").textContent = "Talk to " + m.label);
+  document.title = "Chat — " + m.label;
+}).catch(() => {});
+fetch("/agent/ping").then(r => r.ok ? r.json() : Promise.reject())
+  .then(() => { dot.className = "dot ok"; stat.textContent = "local agent connected"; })
+  .catch(() => { dot.className = "dot bad"; stat.textContent = "agent offline — run: agentcore dev in the current version's project"; });
+</script>
+</body>
+</html>

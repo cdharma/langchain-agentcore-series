@@ -1,0 +1,14 @@
+[
+  {
+    "name": "getCurrentWeather",
+    "description": "Get CURRENT live weather (temperature, feels-like, humidity, wind) for coordinates. Get coordinates from geocodeCity first.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "latitude": { "type": "number", "description": "Latitude of the place" },
+        "longitude": { "type": "number", "description": "Longitude of the place" }
+      },
+      "required": ["latitude", "longitude"]
+    }
+  }
+]

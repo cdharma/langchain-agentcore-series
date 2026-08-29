@@ -1,0 +1,104 @@
+{
+  "$schema": "https://schema.agentcore.aws.dev/v1/agentcore.json",
+  "name": "WeatherAgentV7",
+  "version": 1,
+  "managedBy": "CDK",
+  "tags": {
+    "agentcore:created-by": "agentcore-cli",
+    "agentcore:project-name": "WeatherAgentV7"
+  },
+  "runtimes": [
+    {
+      "name": "WeatherAgentV7",
+      "build": "CodeZip",
+      "entrypoint": "main.py",
+      "codeLocation": "app/WeatherAgentV7/",
+      "runtimeVersion": "PYTHON_3_14",
+      "networkMode": "PUBLIC",
+      "protocol": "HTTP"
+    }
+  ],
+  "memories": [
+    {
+      "name": "WeatherAgentV7Memory",
+      "eventExpiryDuration": 30,
+      "strategies": [
+        {
+          "type": "SEMANTIC",
+          "namespaceTemplates": [
+            "/users/{actorId}/facts"
+          ]
+        },
+        {
+          "type": "USER_PREFERENCE",
+          "namespaceTemplates": [
+            "/users/{actorId}/preferences"
+          ]
+        },
+        {
+          "type": "SUMMARIZATION",
+          "namespaceTemplates": [
+            "/summaries/{actorId}/{sessionId}"
+          ]
+        },
+        {
+          "type": "EPISODIC",
+          "namespaceTemplates": [
+            "/episodes/{actorId}/{sessionId}"
+          ],
+          "reflectionNamespaceTemplates": [
+            "/episodes/{actorId}"
+          ]
+        }
+      ]
+    }
+  ],
+  "knowledgeBases": [],
+  "credentials": [
+    {
+      "authorizerType": "ApiKeyCredentialProvider",
+      "name": "OpenMeteoKey"
+    }
+  ],
+  "evaluators": [],
+  "onlineEvalConfigs": [],
+  "agentCoreGateways": [
+    {
+      "name": "WeatherGateway",
+      "protocolType": "None",
+      "description": "Gateway for WeatherGateway",
+      "targets": [
+        {
+          "name": "GeoAPI",
+          "targetType": "openApiSchema",
+          "outboundAuth": {
+            "type": "API_KEY",
+            "credentialName": "OpenMeteoKey"
+          },
+          "schemaSource": {
+            "inline": {
+              "path": "specs/open-meteo-geocoding.json"
+            }
+          }
+        },
+        {
+          "name": "ForecastTool",
+          "targetType": "lambdaFunctionArn",
+          "lambdaFunctionArn": {
+            "lambdaArn": "arn:aws:lambda:us-east-1:000000000000:function:WeatherAgentV7Forecast",
+            "toolSchemaFile": "specs/forecast-lambda-tools.json"
+          }
+        }
+      ],
+      "authorizerType": "NONE",
+      "enableSemanticSearch": true,
+      "exceptionLevel": "NONE"
+    }
+  ],
+  "policyEngines": [],
+  "configBundles": [],
+  "abTests": [],
+  "harnesses": [],
+  "datasets": [],
+  "payments": []
+}

@@ -1,0 +1,27 @@
+# secrets — real .env files never leave this machine
+.env
+.env.*
+**/agentcore/.env.local
+
+# account-specific deploy targets (scaffolded empty by `agentcore create`)
+**/agentcore/aws-targets.json
+
+# explainer boards are kept out of the repo
+*.excalidraw
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# agentcore CLI internals: logs, traces, staging, deploy state
+**/agentcore/.cli/
+**/agentcore/.cache/
+**/agentcore/cdk/cdk.out/
+**/agentcore/cdk/node_modules/
+
+# session history from local tooling
+.remember/
+
+# build artifacts
+**/lambda/**/function.zip

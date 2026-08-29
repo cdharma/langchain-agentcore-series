@@ -1,0 +1,71 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Open-Meteo Weather API",
+    "description": "Live current weather conditions for any coordinates.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "https://api.open-meteo.com" }],
+  "security": [{ "ApiKeyAuth": [] }],
+  "paths": {
+    "/v1/forecast": {
+      "get": {
+        "operationId": "getCurrentWeather",
+        "summary": "Get CURRENT weather for coordinates",
+        "description": "Returns live current weather (temperature, feels-like, humidity, wind) for a latitude/longitude. Get coordinates from geocodeCity first.",
+        "parameters": [
+          {
+            "name": "latitude",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number" }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number" }
+          },
+          {
+            "name": "current",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated current-weather variables. Use: temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m",
+            "schema": {
+              "type": "string",
+              "default": "temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current conditions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "current": {
+                      "type": "object",
+                      "properties": {
+                        "temperature_2m": { "type": "number" },
+                        "apparent_temperature": { "type": "number" },
+                        "relative_humidity_2m": { "type": "number" },
+                        "wind_speed_10m": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-Api-Key" }
+    }
+  }
+}
