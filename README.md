@@ -52,5 +52,5 @@ that proxies to whatever `agentcore dev` is running:
 AGENT_LABEL="WeatherAgentV7 · v0.7" python3 serve.py   # http://localhost:8321
 ```
 
-The Excalidraw explainer boards used in the videos aren't part of this repo, so
-the board panels on that page show a placeholder.
+Each version folder also carries the Excalidraw explainer board used in its video
+(`vX.Y/agent-explainer-vX.Y.excalidraw`); the hub renders them inline.

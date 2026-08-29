@@ -6,9 +6,6 @@
 # account-specific deploy targets (scaffolded empty by `agentcore create`)
 **/agentcore/aws-targets.json
 
-# explainer boards are kept out of the repo
-*.excalidraw
-
 # python
 .venv/
 __pycache__/

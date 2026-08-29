@@ -451,7 +451,7 @@ try {
       svg.style.setProperty("--natw", svg.viewBox.baseVal.width + "px"); // natural size for click-to-zoom
       mount.replaceChildren(svg);
     } catch (e) {
-      mount.innerHTML = `<p class="fallback">Board not available here — the <code>.excalidraw</code> explainer files aren't part of this repo.</p>`;
+      mount.innerHTML = `<p class="fallback">Couldn't load this board (<code>${b.file}</code>).</p>`;
     }
   }
 } catch (e) {
